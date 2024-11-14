@@ -1,4 +1,4 @@
-name: staging_env
+name: codex_staging_env
 channels:
   - defaults
 dependencies:
@@ -8,4 +8,3 @@ dependencies:
   - conda-forge::tifffile
   - pandas
   - conda-forge::beautifulsoup4
-prefix: C:\Users\VictorP\anaconda3\envs\staging_env
