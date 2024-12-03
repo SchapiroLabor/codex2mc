@@ -157,12 +157,8 @@ def any_ref(mf_tuple, ref_marker="DAPI"):
         bool: True if the reference marker is present in the mf_tuple, False otherwise.
     """
 
-    exist_ref = False
-    for m in mf_tuple:
-        if m[0] == ref_marker:
-            exist_ref = True
-            break
-    return exist_ref
+    return any(m[0] == ref_marker for m in mf_tuple)
+
 
 
 def init_stack(ref_tile_index, groupby_obj, marker_filter_map):
