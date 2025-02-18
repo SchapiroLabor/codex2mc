@@ -9,7 +9,7 @@ def info_dic(target_pattern):
     """
 
     # Initialize dictionary
-    template = {"full_path": "", "img_name": ""}
+    template = {"full_path": "", "img_name": "","cycle":"","roi":""}
 
     for key in target_pattern:
         template[key] = ""
@@ -27,31 +27,11 @@ def codex_pattern(version=1):
     """
 
     if version == 1:
+        
         pattern = {
-            "cycle": r"(.*?)_(.*?)Cycle",
-            "source": r"_(.*?)Cycle",
-            "rack": r"_R-(\d+)",
-            "well": r"_W-(\d+)",
-            "roi": r"_G-(\d+)",
-            "tile": r"_F-(\d+)",
-            "exposure_time": r"_E-(\d+)",
-            "marker": r"Cycle_(.*?)_",
-            "filter": r".*_([^_]*)_\d+bit",
+            "tile"     : r"_(.*?)_",
+            "plane"    : r"_Z(.*?)_",
+            "channel"  : r"_CH(\d+)",
         }
 
-    elif version == 2:
-        pattern = {
-            "cycle": r"CYC-(\d+)",
-            "source": r"_ST-(.*?)_",
-            "rack": r"_R-(\d+)",
-            "well": r"_W-(.*?\d+)",
-            "roi": r"_ROI-(\d+)",
-            "tile": r"_F-(\d+)",
-            "exposure_time": r"_EXP-(\d+(?:\.\d+)?)",
-            "marker": r"_A-(.*?)_",
-            "filter": r"_D-(.*?)_",
-        }
-
-    else:
-        raise ValueError("version argument should be 1 or 2")
     return pattern

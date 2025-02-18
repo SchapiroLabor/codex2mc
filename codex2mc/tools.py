@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 import numpy as np
 from pathlib import Path
 import ome_writer
-import illumination_corr
+#import illumination_corr
 
 
 def merge_dicts(list_of_dicts):
@@ -45,39 +45,37 @@ def extract_values(target_pattern, strings, number_cast=True):
     ]
 
 
-def extract_metadata(tile_abs_path):
-    """
-    This function extracts the metadata from a tiff file using the ome-xml format.
-    Args:
-        tile_abs_path (Path): full path to the tiff file
-    Returns:
-        dict: dictionary with the metadata extracted from the tiff file using the ome-xml format.
-    """
-    with tifff.TiffFile(tile_abs_path) as tif:
-        metadata = tif.ome_metadata
+def extract_metadata(img_info,meta):
+    unit='mm'
+    unit_exp={'mm':-3,'nm':-9}
 
-    ome = BeautifulSoup(metadata, "xml")
+    pixel_size_unit=meta["general"]["resolution_nm"]*10**( unit_exp["nm"]-unit_exp[unit] )## nm to mm
+
+    chann_ind=img_info['channel']
+    tile_ind=img_info['tile']
+    
     return {
-        "position_x": float(ome.StageLabel["X"]),
-        "position_y": float(ome.StageLabel["Y"]),
-        "position_x_unit": ome.StageLabel["XUnit"],
-        "position_y_unit": ome.StageLabel["YUnit"],
-        "physical_size_x": float(ome.Pixels["PhysicalSizeX"]),
-        "physical_size_x_unit": ome.Pixels["PhysicalSizeXUnit"],
-        "physical_size_y": float(ome.Pixels["PhysicalSizeY"]),
-        "physical_size_y_unit": ome.Pixels["PhysicalSizeXUnit"],
-        "size_x": ome.Pixels["SizeX"],
-        "size_y": ome.Pixels["SizeY"],
-        "type": ome.Pixels["Type"],  # bit_depth
-        "significant_bits": int(ome.Pixels["SignificantBits"]),
-        "emission_wavelenght": ome.Channel["EmissionWavelength"],
-        "excitation_wavelenght": ome.Channel["ExcitationWavelength"],
-        "emission_wavelenght_unit": ome.Channel["EmissionWavelengthUnit"],
-        "excitation_wavelenght_unit": ome.Channel["ExcitationWavelengthUnit"],
-    }
+        "position_x"                : meta["roi"]["tiles"][tile_ind]["x_mm"],
+        "position_y"                : meta["roi"]["tiles"][tile_ind]["y_mm"],
+        "position_x_unit"           : unit ,
+        "position_y_unit"           : unit ,
+        "physical_size_x"           : pixel_size_unit*meta["general"]["tileWidth_px"] ,
+        "physical_size_x_unit"      : unit,
+        "physical_size_y"           : pixel_size_unit*meta["general"]["tileHeight_px"]  ,
+        "physical_size_y_unit"      : unit,
+        "size_x"                    : meta["general"]["tileWidth_px"] ,
+        "size_y"                    : meta["general"]["tileHeight_px"] ,
+        "type"                      : 'uint'+ str(meta["general"]["microscopeBitDepth"]) , 
+        "significant_bits"          : meta["general"]["microscopeBitDepth"] ,
+        "excitation_wavelenght"     : meta["general"]["wavelengths"][chann_ind],
+        "excitation_wavelenght_unit": "nm",
+        "exposure_time"             : meta["cycle"]["channels"][chann_ind]["exposureTime_ms"] ,
+        "marker"                    : meta["cycle"]["channels"][chann_ind]["markerName"] ,
+        "filter"                    : meta["cycle"]["channels"][chann_ind]["filterName"] ,
+        }
 
 
-def cycle_info(cycle_path, platform_pattern, ref_marker="DAPI"):
+def cycle_info(cycle_path, platform_pattern):
     """
     This function reads the images produced by the MACSima device and returns the acquisition information
     specified in the image name.
@@ -97,22 +95,16 @@ def cycle_info(cycle_path, platform_pattern, ref_marker="DAPI"):
     info = info_dic(platform_pattern)
 
     info["full_path"] = full_image_paths
-    info["img_name"] = file_names
+    info["img_name"]  = file_names
+    info["cycle"]     = len(full_image_paths)*[int( re.search(r"cyc(.*?)_",cycle_path.stem).group(1))]
+    info["roi"]       = len(full_image_paths)*[int( re.search(r"reg(\d+)",cycle_path.stem).group(1) )]
 
     for feat, value in platform_pattern.items():
         info[feat] = extract_values(
-            target_pattern=value, strings=file_names, number_cast=False
+            target_pattern=value, strings=file_names, number_cast=True
         )
 
     df = pd.DataFrame(info)
-    df.loc[df["filter"] == ref_marker, "marker"] = ref_marker
-
-    df.insert(loc=df.shape[1], column="exposure_level", value=0)
-    df["exposure_time"] = df["exposure_time"].astype(float)
-    df["exposure_level"] = (
-        df.groupby(["source", "marker", "filter"])["exposure_time"].rank(method="dense")
-    ).astype(int)
-
     return df
 
 

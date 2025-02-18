@@ -19,11 +19,12 @@ def main():
     out_folder_name = args.output_dir
 
     # Get cycle info
-    cycle_info = tools.cycle_info(input, codex_pattern(version=2), ref_marker=ref)
+    cycle_info = tools.cycle_info(input, codex_pattern(version=1))
 
     # Create stack
-    cycle_info = tools.append_metadata(cycle_info)
-    # cycle_info.to_csv( args.output / 'cycle_{c}_info.csv'.format(c=f'{6:03d}'), index=False )
+    #cycle_info = tools.append_metadata(cycle_info)
+    cycle_info.to_csv( args.output / 'cycle_{c}_info.csv'.format(c=f'{6:03d}'), index=False )
+    '''
     output_dirs = tools.create_stack(
         cycle_info,
         output,
@@ -36,7 +37,7 @@ def main():
     # Save markers file in each output directory
     for path in output_dirs:
         mc_tools.write_markers_file(path)
-
+    '''
 
 if __name__ == "__main__":
     main()
