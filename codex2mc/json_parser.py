@@ -1,5 +1,6 @@
 import json
 from pprint import pprint
+import numpy as np
 
 def main():
     with open("test_data/metadata/experimentV4.json") as f:

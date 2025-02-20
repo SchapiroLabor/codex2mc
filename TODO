@@ -1,0 +1,7 @@
+- delete expt.py and all its calls in tools.py
+- include reference cycle in the curated metadata
+- delete in tools.py:
+  - select_by_exposure
+  - append_reference
+  - append_missing_channel
+  - conform group ?

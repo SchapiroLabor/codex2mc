@@ -6,6 +6,8 @@ from bs4 import BeautifulSoup
 import numpy as np
 from pathlib import Path
 import ome_writer
+import exceptions as expt
+from itertools import repeat
 #import illumination_corr
 
 
@@ -13,7 +15,7 @@ def merge_dicts(list_of_dicts):
     """
     This function merges a list of dictionaries into a single dictionary where the values are stored in lists.
     Args:
-        list_of_dicts (list): list of dictionaries to merge
+        list_of_dicts (list): list of dictionaries with common keys
     Returns:
         merged_dict (dict): dictionary with the values stored in lists
     """
@@ -26,8 +28,9 @@ def merge_dicts(list_of_dicts):
                 merged_dict[key] = [value]
     return merged_dict
 
-
-def extract_values(target_pattern, strings, number_cast=True):
+def extract_values(target_pattern,
+                   strings,
+                   number_cast=True):
     """
     This function extracts the values from a list of strings using a regular expression pattern.
     Args:
@@ -53,7 +56,6 @@ def extract_metadata(img_info,meta):
 
     chann_ind=img_info['channel']
     tile_ind=img_info['tile']
-    
     return {
         "position_x"                : meta["roi"]["tiles"][tile_ind]["x_mm"],
         "position_y"                : meta["roi"]["tiles"][tile_ind]["y_mm"],
@@ -67,13 +69,12 @@ def extract_metadata(img_info,meta):
         "size_y"                    : meta["general"]["tileHeight_px"] ,
         "type"                      : 'uint'+ str(meta["general"]["microscopeBitDepth"]) , 
         "significant_bits"          : meta["general"]["microscopeBitDepth"] ,
-        "excitation_wavelenght"     : meta["general"]["wavelengths"][chann_ind],
+        "excitation_wavelenght"     : meta["general"]["wavelengths"][chann_ind-1],
         "excitation_wavelenght_unit": "nm",
         "exposure_time"             : meta["cycle"]["channels"][chann_ind]["exposureTime_ms"] ,
         "marker"                    : meta["cycle"]["channels"][chann_ind]["markerName"] ,
         "filter"                    : meta["cycle"]["channels"][chann_ind]["filterName"] ,
         }
-
 
 def cycle_info(cycle_path, platform_pattern):
     """
@@ -108,7 +109,7 @@ def cycle_info(cycle_path, platform_pattern):
     return df
 
 
-def append_metadata(cycle_info_df):
+def append_metadata(cycle_info_df,meta):
     """
     This function appends the metadata extracted from the tiff files to the cycle_info dataframe.
     Args:
@@ -116,7 +117,9 @@ def append_metadata(cycle_info_df):
     Returns:
         pd.DataFrame: dataframe with the metadata appended to the cycle_info dataframe as new columns.
     """
-    pos = list(map(extract_metadata, cycle_info_df["full_path"].values))
+    img_info_rows =[val for key,val in cycle_info_df.to_dict('index').items()]
+
+    pos = list( map( extract_metadata, img_info_rows,repeat(meta) ) )
 
     for key, val in merge_dicts(pos).items():
         cycle_info_df.insert(loc=cycle_info_df.shape[1], column=key, value=val)
@@ -124,7 +127,8 @@ def append_metadata(cycle_info_df):
     return cycle_info_df
 
 
-def conform_markers(mf_tuple, ref_marker="DAPI"):
+def conform_markers(mf_tuple,
+                    ref_marker='DAPI'):
     """
     This function reorders the markers in the mf_tuple so that the reference marker is the first element.
     Args:
@@ -134,26 +138,12 @@ def conform_markers(mf_tuple, ref_marker="DAPI"):
         list: list with the markers and filters reordered so that the reference marker is the first element.
     """
 
-    markers = [tup for tup in mf_tuple if tup[0] != ref_marker]
-    markers.insert(0, (ref_marker, ref_marker))
+    markers = [tup for tup in mf_tuple if tup[0]!=ref_marker]
+    markers.insert(0,(ref_marker,ref_marker))
     return markers
 
-
-def any_ref(mf_tuple, ref_marker="DAPI"):
-    """
-    This function checks if the reference marker is present in the mf_tuple.
-    Args:
-        mf_tuple (tuple): tuple with the markers and filters
-        ref_marker (str): reference marker used for registration
-    Returns:
-        bool: True if the reference marker is present in the mf_tuple, False otherwise.
-    """
-
-    return any(m[0] == ref_marker for m in mf_tuple)
-
-
-
-def init_stack(ref_tile_index, groupby_obj, marker_filter_map):
+def init_stack(group,
+               no_of_channels):
     """
     This function initializes the stack array with the dimensions of the tiles.
     Args:
@@ -164,17 +154,21 @@ def init_stack(ref_tile_index, groupby_obj, marker_filter_map):
         np.ndarray: array with the dimensions of the stack array (depth, height, width) and the dtype of the
         reference tile.
     """
-    ref_tile = groupby_obj.get_group((ref_tile_index,))
-    total_tiles = len(groupby_obj)
-    width = ref_tile.size_x.values[0]
-    height = ref_tile.size_y.values[0]
-    depth = total_tiles * len(marker_filter_map)
-    stack = np.zeros((depth, int(height), int(width)), dtype=ref_tile.type.values[0])
+    aux_array=[ group['size_x'].unique() , group['size_y'].unique(), group['type'].unique() ]
+    check_array=np.array( [ len(element) for element in aux_array ] )
+    if np.any(check_array>1):
+        print("Warning:tiles of these acquisition have no unique value for the following columns: xy-size or data type")
+    width, height, data_type = [ element[0] for element in aux_array  ]
+    total_tiles = group['tile'].nunique()
+    depth = total_tiles * no_of_channels
+    
+    stack = np.zeros( (depth,int(height),int(width)), dtype=data_type)
 
     return stack
 
-
-def cast_stack_name(cycle_no, acq_group_index, marker_filter_map):
+def cast_stack_name(cycle_no,
+                    acq_group_index,
+                    marker_filter_map):
     """
     This function creates the name of the stack file.
     Args:
@@ -184,11 +178,11 @@ def cast_stack_name(cycle_no, acq_group_index, marker_filter_map):
     Returns:
         str: name of the stack file.
     """
-    markers = "__".join([element[0] for element in marker_filter_map])
-    filters = "__".join([element[1] for element in marker_filter_map])
+    markers='__'.join([element[0] for element in marker_filter_map ])
+    filters='__'.join([element[1] for element in marker_filter_map ])
     cycle_no = int(cycle_no)
 
-    c = f"{cycle_no:03d}"
+    c = f'{cycle_no:03d}'
     s = acq_group_index[0]
     e = acq_group_index[4]
     r = acq_group_index[1]
@@ -196,10 +190,10 @@ def cast_stack_name(cycle_no, acq_group_index, marker_filter_map):
     roi = acq_group_index[3]
     m = markers
     f = filters
-    img_format = "ome.tiff"
+    img_format = 'ome.tiff'
 
     # Nicer way to format strings
-    name = f"cycle-{c}-src-{s}-rack-{r}-well-{w}-roi-{roi}-exp-{e}-markers-{m}-filters-{f}.{img_format}"
+    name = f'cycle-{c}-src-{s}-rack-{r}-well-{w}-roi-{roi}-exp-{e}-markers-{m}-filters-{f}.{img_format}'
 
     return name
 
@@ -218,7 +212,7 @@ def cast_outdir_name(tup):
     e = tup[4]
 
     # Nicer way to format strings
-    name = f"rack-{r}-well-{w}-roi-{roi}-exp-{e}"
+    name = f'rack-{r}-well-{w}-roi-{roi}-exp-{e}'
 
     return name
 
@@ -230,17 +224,19 @@ def outputs_dic():
         dict: dictionary with the keys 'index', 'array', 'full_path', 'ome' and empty lists as values
     """
 
-    out = {
-        "index": [],
-        "array": [],
-        "full_path": [],
-        "ome": [],
-    }
+    out={
+        'index':[],
+        'array':[],
+        'full_path':[],
+        'ome':[],
+        }
 
     return out
 
 
-def select_by_exposure(list_indices, exp_index=4, target="max"):
+def select_by_exposure(list_indices,
+                       exp_index,
+                       target='max'):
     """
     This function selects the indices with the maximum or minimum exposure time.
     Args:
@@ -251,27 +247,64 @@ def select_by_exposure(list_indices, exp_index=4, target="max"):
         list: list of selected indices
     """
     selected_indices = []
-    df_aux = pd.DataFrame(np.row_stack(list_indices))
-    group_by_indices = np.setdiff1d(range(0, len(list_indices[0])), exp_index).tolist()
+    df_aux = pd.DataFrame( np.row_stack(list_indices) )
+    group_by_indices = np.setdiff1d( range(0, len(list_indices[0]) ), exp_index ).tolist()
 
-    for key, frame in df_aux.groupby(group_by_indices):
-        if target == "max":
-            selected_indices.append(key + (int(frame[exp_index].max()),))
-        elif target == "min":
-            selected_indices.append(key + (int(frame[exp_index].min()),))
+    for key, frame in df_aux.groupby( group_by_indices ):
+        if target == 'max':
+            selected_indices.append( key + ( int(frame[exp_index].max() ), ) )
+        elif target == 'min':
+            selected_indices.append( key + ( int( frame[exp_index].min()), ) )
 
     return selected_indices
 
+def append_reference(frame,frame_index,groups,aux_reference_exp_level,ref_marker_name):
 
-def create_stack(
-    cycle_info_df,
-    output_dir,
-    ref_marker="DAPI",
-    hi_exp=False,
-    ill_corr=False,
-    out_folder="raw",
-    extended_outputs=False,
-):
+    aux_index = list(frame_index)
+    aux_index[-1] = aux_reference_exp_level
+    aux_index = tuple(aux_index)
+    aux_group = groups.get_group(aux_index)
+    aux_group = aux_group.loc[aux_group['marker']==ref_marker_name]
+    frame_ = pd.concat([frame, aux_group])
+    return frame_
+
+def append_missing_channels(group, exception_table ):
+    #exception_table.cols=["tile","missing_ch","channels","aux_tile"]
+    tiles=group.groupby(['tile'])
+    incomplete_tiles=exception_table.loc[exception_table['missing_ch']==True ] 
+    add_tiles=[]
+    for row in incomplete_tiles.itertuples(index=False):
+        aux_tile_df=tiles.get_group( (row.aux_tile,) )
+        missing_markers=[ tuple(element.split(',')) for element in row.channels.split(':') ]
+        for marker, filt in missing_markers:
+            df=aux_tile_df.loc[ (aux_tile_df['marker']==marker) & (aux_tile_df['filter']==filt) ]
+            #df['tile']=row.tile
+            df.loc[:,'tile']=row.tile
+            add_tiles.append(df)
+
+    aux_group=pd.concat(add_tiles)
+    aux_group[ ['full_path','img_name'] ]='missing'
+    group_=pd.concat([group,aux_group])
+
+    return group_
+
+def conform_acquisition_group(group,conformed_markers):
+    aux=[]
+    for tile_id,frame in group.groupby(['tile']):
+        aux.extend([ frame.loc[ (frame['marker']==marker) & (frame['filter']==filt)] for marker, filt in conformed_markers ]) 
+    group_conformed=pd.concat(aux)
+
+    return group_conformed
+
+
+
+def create_stack(cycle_info_df,
+                 output_dir,
+                 ref_marker='DAPI',
+                 hi_exp=False,
+                 ill_corr=False,
+                 out_folder='raw',
+                 extended_outputs=False):
     """
     This function creates the stack of images from the cycle_info dataframe.
     Args:
@@ -289,71 +322,81 @@ def create_stack(
     if extended_outputs:
         out = outputs_dic()
     else:
-        out = {"output_paths": []}
+        out = {'output_paths':[]}
 
-    acq_group = cycle_info_df.groupby(
-        ["source", "rack", "well", "roi", "exposure_level"]
-    )
-    acq_index = list(acq_group.indices.keys())
+    #'exposure_level' should always be the last element of the dimensions list
+    dimensions=['source','rack','well','roi','exposure_level']
+    
+    acq_group = cycle_info_df.groupby(dimensions)
+    acq_index = list( acq_group.indices.keys() )
+    expt_matrix_roi=expt.at_roi(acq_group,dimensions,ref_marker).groupby(dimensions)#exceptions matrix
 
     if hi_exp:
-        acq_index = select_by_exposure(acq_index)
+        exp_level_index=np.argwhere( np.asarray(dimensions)=='exposure_level' ).flatten()[0]
+        acq_index = select_by_exposure(acq_index,exp_level_index,target='max')
 
     for index in acq_index:
         stack_output_dir = output_dir / cast_outdir_name(index) / out_folder
         stack_output_dir.mkdir(parents=True, exist_ok=True)
         group = acq_group.get_group(index)
 
-        # use tile 1 as reference to determine the height and width of the tiles
-        tile_no = group.tile.values
-        ref_tile = group.groupby(["tile"]).get_group((tile_no[0],))
-        marker_filter_map = list(ref_tile.groupby(["marker", "filter"]).indices.keys())
-        exist_ref = any_ref(marker_filter_map, ref_marker)
+        exist_ref, aux_reference= expt_matrix_roi.get_group(index )[ ['ref_marker','aux_exp_level'] ].iloc[0].values
         if not exist_ref:
-            index_aux = list(index)
-            index_aux[-1] = 1
-            index_aux = tuple(index_aux)
-            aux_group = acq_group.get_group(index_aux)
-            aux_group = aux_group.loc[aux_group["marker"] == ref_marker]
-            group = pd.concat([group, aux_group])
-
-        # group.to_csv(stack_output_dir.parent.absolute() /'info.csv' )
-        groups_of_tiles = group.groupby(["tile"])
+            group=append_reference(group, index, acq_group, aux_reference, ref_marker)
+        #extract list of unique pairs (marker,filter)
+        marker_filter_map=group[['marker','filter']].value_counts().index.values
+        #conform the pairs (marker,filter) as to have the reference marker in the first place (1st channel) of the list 
         conformed_markers = conform_markers(marker_filter_map, ref_marker)
-        stack = init_stack(tile_no[0], groups_of_tiles, conformed_markers)
-        ome = ome_writer.create_ome(group, conformed_markers)
-        counter = 0
+        
+        expt_matrix_tiles=expt.at_tile(group,conformed_markers)
+        if expt_matrix_tiles['missing_ch'].any():
+            group=append_missing_channels(group,expt_matrix_tiles)
 
-        for tile_no, frame in groups_of_tiles:
-            for marker, filter in conformed_markers:
-                target_path = frame.loc[
-                    (frame["marker"] == marker) & (frame["filter"] == filter)
-                ].full_path.values[0]
-                stack[counter, :, :] = tifff.imread(Path(target_path))
+        stack = init_stack(group, len( conformed_markers))
+        conformed_group=conform_acquisition_group(group,conformed_markers)
+        #ome = ome_writer.create_ome(group, conformed_markers)
+        ome = ome_writer.create_ome(conformed_group, conformed_markers)
+        counter = 0
+        groups_of_tiles = conformed_group.groupby(['tile'])
+        #for tile_no, frame in groups_of_tiles:
+        #    for marker, filter in conformed_markers:
+        #        target_path = frame.loc[ (frame['marker']==marker) & (frame['filter']==filter) ].full_path.values[0]
+        #       stack[counter,:,:] = tifff.imread(Path(target_path))
+        #      counter += 1
+        for tile_id,frame in groups_of_tiles:
+            for img_path in frame['full_path'].values:
+                try:
+                    stack[counter,:,:] = tifff.imread(Path(img_path))
+                except:
+                    if img_path=='missing':
+                        pass
                 counter += 1
+                
+
+
         stack_name = cast_stack_name(frame.cycle.iloc[0], index, conformed_markers)
 
         if ill_corr:
-            tag = "corr_"
+            tag = 'corr_'
             no_of_channels = len(conformed_markers)
-            stack = illumination_corr.apply_corr(stack, no_of_channels)
+            stack = illumination_corr.apply_corr(stack,no_of_channels)
         else:
-            tag = ""
+            tag = ''
 
-        stack_file_path = stack_output_dir / f"{tag}{stack_name}"
+        stack_file_path = stack_output_dir / f'{tag}{stack_name}'
 
         if extended_outputs:
-            out["index"].append(index)
-            out["array"].append(stack)
-            out["full_path"].append(stack_file_path)
-            out["ome"].append(ome)
+            out['index'].append(index)
+            out['array'].append(stack)
+            out['full_path'].append(stack_full_path)
+            out['ome'].append(ome)
         else:
-            out["output_paths"].append(stack_output_dir)
-            tifff.imwrite(stack_file_path, stack, photometric="minisblack")
-            ome, ome_xml = ome_writer.create_ome(group, conformed_markers)
+            out['output_paths'].append(stack_output_dir)
+            tifff.imwrite( stack_file_path , stack, photometric='minisblack' )
+            ome,ome_xml = ome_writer.create_ome(group, conformed_markers)
             tifff.tiffcomment(stack_file_path, ome_xml)
-
+        
     if extended_outputs:
         return out
     else:
-        return np.unique(out["output_paths"])
+        return np.unique( out['output_paths'] )

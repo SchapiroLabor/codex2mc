@@ -2,6 +2,8 @@ import tools
 from templates import codex_pattern
 import CLI
 import mc_tools
+import json_parser
+import qc
 
 # input_test_folder=Path("D:/codex_data_samples/codex_data_v2/8_Cycle2")
 # output_test_folder=Path('D:/test_folder')
@@ -16,14 +18,25 @@ def main():
     output = args.output
     ref = args.reference_marker
     basicpy_corr = args.illumination_correction
-    out_folder_name = args.output_dir
+    out_folder_name = args.output_subdir
+    json_details=args.json_file_details
+    json_general=args.json_file_general
 
     # Get cycle info
-    cycle_info = tools.cycle_info(input, codex_pattern(version=1))
+    cycle_info   = tools.cycle_info(input, codex_pattern(version=1))
+    cycle_number = int(cycle_info['cycle'].unique()[0])
+    region_number= int(cycle_info['roi'].unique()[0])
+    # Parse and curate metadata
+    metadata = json_parser.depure_json(json_details,json_general,cycle_number,region_number)
+    # Append metadata and calculate qc metrics
+    cycle_info = tools.append_metadata(cycle_info,metadata)
+    cycle_info = qc.append_qc(cycle_info)
+    # Select plane with highest contrast
+    cycle_info_=cycle_info.loc[cycle_info.groupby(["channel", "tile"])["contrast_median"].idxmax()]
 
-    # Create stack
-    #cycle_info = tools.append_metadata(cycle_info)
-    cycle_info.to_csv( args.output / 'cycle_{c}_info.csv'.format(c=f'{6:03d}'), index=False )
+    cycle_info.to_csv( args.output / 'cycle_{c}_info_meta_extended_QC.csv'.format(c=f'{6:03d}'), index=False )
+    
+    
     '''
     output_dirs = tools.create_stack(
         cycle_info,

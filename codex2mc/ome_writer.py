@@ -1,7 +1,9 @@
 import ome_schema as schema
+import pandas as pd
 
 
-def create_ome(tile_info, conformed_markers):
+def create_ome(tile_info,
+               conformed_markers):
     """
     This function creates an OME-XML file from a pandas dataframe containing the metadata of the tiles.
     Args:
@@ -11,19 +13,17 @@ def create_ome(tile_info, conformed_markers):
         str: OME-XML file.
     """
 
-    grouped_tiles = tile_info.groupby(["tile"])
+    grouped_tiles = tile_info.groupby(['tile'])
     no_of_channels = len(conformed_markers)
     tiles_counter = 0
     image = []
     for tileID, frame in grouped_tiles:
         metadata = schema.INPUTS(frame, conformed_markers)
-        tiff = schema.TIFF_array(
-            no_of_channels, inputs={"offset": no_of_channels * tiles_counter}
-        )
+        tiff = schema.TIFF_array(no_of_channels, inputs={'offset': no_of_channels * tiles_counter})
         plane = schema.PLANE_array(no_of_channels, metadata)
         channel = schema.CHANN_array(no_of_channels, metadata)
         pixels = schema.PIXELS_array(channel, plane, tiff, metadata)
-        image.append(schema.IMAGE_array(pixels, tiles_counter))
+        image.append(schema.IMAGE_array (pixels, tiles_counter))
         tiles_counter += 1
     ome, ome_xml = schema.OME_metadata(image)
 
