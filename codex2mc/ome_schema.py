@@ -90,8 +90,6 @@ def CHANN_array(no_of_channels, inputs):
         Channel(
             id=f"Channel:{100+int(inputs['tile'][ch])}:{ch}:{inputs['marker'][ch]}", # 'Channel:{y}:{x}:{marker_name}'.format(x=ch,y=100+int( inputs['tile'][ch] ) ,marker_name=inputs['marker'][ch] )
             color=(255,255,255),
-            emission_wavelength=inputs['emission_wavelenght'][ch],
-            emission_wavelength_unit=inputs['emission_wavelenght_unit'][ch],
             excitation_wavelength=inputs['excitation_wavelenght'][ch],
             excitation_wavelength_unit=inputs['excitation_wavelenght_unit'][ch]
             )

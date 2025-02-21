@@ -6,7 +6,6 @@ from bs4 import BeautifulSoup
 import numpy as np
 from pathlib import Path
 import ome_writer
-import exceptions as expt
 from itertools import repeat
 #import illumination_corr
 
@@ -138,8 +137,12 @@ def conform_markers(mf_tuple,
         list: list with the markers and filters reordered so that the reference marker is the first element.
     """
 
-    markers = [tup for tup in mf_tuple if tup[0]!=ref_marker]
-    markers.insert(0,(ref_marker,ref_marker))
+    markers = [tup for tup in mf_tuple if ref_marker not in tup[0]]
+
+    for n,tup in enumerate(mf_tuple):
+        if ref_marker in tup[0]:
+            markers.insert(0, mf_tuple[n] )
+
     return markers
 
 def init_stack(group,
@@ -178,22 +181,22 @@ def cast_stack_name(cycle_no,
     Returns:
         str: name of the stack file.
     """
-    markers='__'.join([element[0] for element in marker_filter_map ])
-    filters='__'.join([element[1] for element in marker_filter_map ])
+    markers=('__'.join([element[0] for element in marker_filter_map ])).replace('/','-')
+    filters=('__'.join([element[1] for element in marker_filter_map ])).replace('/','-')
+    
     cycle_no = int(cycle_no)
 
     c = f'{cycle_no:03d}'
-    s = acq_group_index[0]
-    e = acq_group_index[4]
-    r = acq_group_index[1]
-    w = acq_group_index[2]
-    roi = acq_group_index[3]
+    try:
+        roi = acq_group_index[0]
+    except:
+        roi= acq_group_index
     m = markers
     f = filters
     img_format = 'ome.tiff'
 
     # Nicer way to format strings
-    name = f'cycle-{c}-src-{s}-rack-{r}-well-{w}-roi-{roi}-exp-{e}-markers-{m}-filters-{f}.{img_format}'
+    name = f'cycle-{c}-roi-{roi}-markers-{m}-filters-{f}.{img_format}'
 
     return name
 
@@ -206,13 +209,12 @@ def cast_outdir_name(tup):
     Returns:
         str: name of the output directory.
     """
-    r = tup[1]
-    w = tup[2]
-    roi = tup[3]
-    e = tup[4]
+    print(tup)
+    #roi = tup[0]
+    roi=tup
 
     # Nicer way to format strings
-    name = f'rack-{r}-well-{w}-roi-{roi}-exp-{e}'
+    name = f'roi-{roi}'
 
     return name
 
@@ -234,60 +236,6 @@ def outputs_dic():
     return out
 
 
-def select_by_exposure(list_indices,
-                       exp_index,
-                       target='max'):
-    """
-    This function selects the indices with the maximum or minimum exposure time.
-    Args:
-        list_indices (list): list of indices
-        exp_index (int): index of the exposure time
-        target (str): 'max' or 'min'
-    Returns:
-        list: list of selected indices
-    """
-    selected_indices = []
-    df_aux = pd.DataFrame( np.row_stack(list_indices) )
-    group_by_indices = np.setdiff1d( range(0, len(list_indices[0]) ), exp_index ).tolist()
-
-    for key, frame in df_aux.groupby( group_by_indices ):
-        if target == 'max':
-            selected_indices.append( key + ( int(frame[exp_index].max() ), ) )
-        elif target == 'min':
-            selected_indices.append( key + ( int( frame[exp_index].min()), ) )
-
-    return selected_indices
-
-def append_reference(frame,frame_index,groups,aux_reference_exp_level,ref_marker_name):
-
-    aux_index = list(frame_index)
-    aux_index[-1] = aux_reference_exp_level
-    aux_index = tuple(aux_index)
-    aux_group = groups.get_group(aux_index)
-    aux_group = aux_group.loc[aux_group['marker']==ref_marker_name]
-    frame_ = pd.concat([frame, aux_group])
-    return frame_
-
-def append_missing_channels(group, exception_table ):
-    #exception_table.cols=["tile","missing_ch","channels","aux_tile"]
-    tiles=group.groupby(['tile'])
-    incomplete_tiles=exception_table.loc[exception_table['missing_ch']==True ] 
-    add_tiles=[]
-    for row in incomplete_tiles.itertuples(index=False):
-        aux_tile_df=tiles.get_group( (row.aux_tile,) )
-        missing_markers=[ tuple(element.split(',')) for element in row.channels.split(':') ]
-        for marker, filt in missing_markers:
-            df=aux_tile_df.loc[ (aux_tile_df['marker']==marker) & (aux_tile_df['filter']==filt) ]
-            #df['tile']=row.tile
-            df.loc[:,'tile']=row.tile
-            add_tiles.append(df)
-
-    aux_group=pd.concat(add_tiles)
-    aux_group[ ['full_path','img_name'] ]='missing'
-    group_=pd.concat([group,aux_group])
-
-    return group_
-
 def conform_acquisition_group(group,conformed_markers):
     aux=[]
     for tile_id,frame in group.groupby(['tile']):
@@ -304,7 +252,8 @@ def create_stack(cycle_info_df,
                  hi_exp=False,
                  ill_corr=False,
                  out_folder='raw',
-                 extended_outputs=False):
+                 extended_outputs=False,
+                 dimensions=["roi"]):
     """
     This function creates the stack of images from the cycle_info dataframe.
     Args:
@@ -323,57 +272,28 @@ def create_stack(cycle_info_df,
         out = outputs_dic()
     else:
         out = {'output_paths':[]}
-
-    #'exposure_level' should always be the last element of the dimensions list
-    dimensions=['source','rack','well','roi','exposure_level']
     
+
     acq_group = cycle_info_df.groupby(dimensions)
     acq_index = list( acq_group.indices.keys() )
-    expt_matrix_roi=expt.at_roi(acq_group,dimensions,ref_marker).groupby(dimensions)#exceptions matrix
-
-    if hi_exp:
-        exp_level_index=np.argwhere( np.asarray(dimensions)=='exposure_level' ).flatten()[0]
-        acq_index = select_by_exposure(acq_index,exp_level_index,target='max')
 
     for index in acq_index:
         stack_output_dir = output_dir / cast_outdir_name(index) / out_folder
         stack_output_dir.mkdir(parents=True, exist_ok=True)
         group = acq_group.get_group(index)
-
-        exist_ref, aux_reference= expt_matrix_roi.get_group(index )[ ['ref_marker','aux_exp_level'] ].iloc[0].values
-        if not exist_ref:
-            group=append_reference(group, index, acq_group, aux_reference, ref_marker)
         #extract list of unique pairs (marker,filter)
         marker_filter_map=group[['marker','filter']].value_counts().index.values
         #conform the pairs (marker,filter) as to have the reference marker in the first place (1st channel) of the list 
         conformed_markers = conform_markers(marker_filter_map, ref_marker)
-        
-        expt_matrix_tiles=expt.at_tile(group,conformed_markers)
-        if expt_matrix_tiles['missing_ch'].any():
-            group=append_missing_channels(group,expt_matrix_tiles)
-
         stack = init_stack(group, len( conformed_markers))
         conformed_group=conform_acquisition_group(group,conformed_markers)
-        #ome = ome_writer.create_ome(group, conformed_markers)
         ome = ome_writer.create_ome(conformed_group, conformed_markers)
         counter = 0
         groups_of_tiles = conformed_group.groupby(['tile'])
-        #for tile_no, frame in groups_of_tiles:
-        #    for marker, filter in conformed_markers:
-        #        target_path = frame.loc[ (frame['marker']==marker) & (frame['filter']==filter) ].full_path.values[0]
-        #       stack[counter,:,:] = tifff.imread(Path(target_path))
-        #      counter += 1
         for tile_id,frame in groups_of_tiles:
             for img_path in frame['full_path'].values:
-                try:
-                    stack[counter,:,:] = tifff.imread(Path(img_path))
-                except:
-                    if img_path=='missing':
-                        pass
+                stack[counter,:,:] = tifff.imread(Path(img_path))
                 counter += 1
-                
-
-
         stack_name = cast_stack_name(frame.cycle.iloc[0], index, conformed_markers)
 
         if ill_corr:
