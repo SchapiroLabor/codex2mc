@@ -53,9 +53,15 @@ def extract_metadata(img_info,meta):
 
     pixel_size_unit=meta["general"]["resolution_nm"]*10**( unit_exp["nm"]-unit_exp[unit] )## nm to mm
 
+    source="B" if img_info["cycle"]==meta["general"]["referenceCycle"] else "S"#B=background, S=signal
+
+
     chann_ind=img_info['channel']
     tile_ind=img_info['tile']
+
+
     return {
+        "source"                    : source, 
         "position_x"                : meta["roi"]["tiles"][tile_ind]["x_mm"],
         "position_y"                : meta["roi"]["tiles"][tile_ind]["y_mm"],
         "position_x_unit"           : unit ,
@@ -72,7 +78,7 @@ def extract_metadata(img_info,meta):
         "excitation_wavelenght_unit": "nm",
         "exposure_time"             : meta["cycle"]["channels"][chann_ind]["exposureTime_ms"] ,
         "marker"                    : meta["cycle"]["channels"][chann_ind]["markerName"] ,
-        "filter"                    : meta["cycle"]["channels"][chann_ind]["filterName"] ,
+        "filter"                    : meta["cycle"]["channels"][chann_ind]["filterName"] 
         }
 
 def cycle_info(cycle_path, platform_pattern):
@@ -187,16 +193,15 @@ def cast_stack_name(cycle_no,
     cycle_no = int(cycle_no)
 
     c = f'{cycle_no:03d}'
-    try:
-        roi = acq_group_index[0]
-    except:
-        roi= acq_group_index
+ 
+    roi = acq_group_index[0]
+    s= acq_group_index[1]
     m = markers
     f = filters
     img_format = 'ome.tiff'
 
     # Nicer way to format strings
-    name = f'cycle-{c}-roi-{roi}-markers-{m}-filters-{f}.{img_format}'
+    name = f'cycle-{c}-src-{s}-roi-{roi}-markers-{m}-filters-{f}.{img_format}'
 
     return name
 
@@ -209,9 +214,7 @@ def cast_outdir_name(tup):
     Returns:
         str: name of the output directory.
     """
-    print(tup)
-    #roi = tup[0]
-    roi=tup
+    roi = f'{tup[0]:03d}'
 
     # Nicer way to format strings
     name = f'roi-{roi}'
@@ -253,7 +256,7 @@ def create_stack(cycle_info_df,
                  ill_corr=False,
                  out_folder='raw',
                  extended_outputs=False,
-                 dimensions=["roi"]):
+                 dimensions=["roi","source"]):
     """
     This function creates the stack of images from the cycle_info dataframe.
     Args:

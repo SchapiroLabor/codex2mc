@@ -6,6 +6,7 @@ import numpy as np
 from multiprocessing import Pool
 
 
+
 def contrast(img):
 
 
@@ -43,6 +44,7 @@ def calculate_img_qc(img_path):
         dict: dictionary with qc_metrics for the input file (img_path)
     """
     img=imread(img_path)
+  
     intensity_med=np.median(img)
     intensity_iqr=np.percentile(img, 75)-np.percentile(img, 25)
     contrast_med,contrast_iqr=contrast(img)

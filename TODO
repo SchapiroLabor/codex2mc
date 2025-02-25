@@ -1,7 +1,13 @@
 - delete expt.py and all its calls in tools.py
 - include reference cycle in the curated metadata
 - delete in tools.py:
-  - select_by_exposure
-  - append_reference
-  - append_missing_channel
-  - conform group ?
+  - select_by_exposure(done)
+  - append_reference (done)
+  - append_missing_channel (done)
+  - check init stack (done)
+  - check tuplicity of group index when only one index
+  - put back in mc_tools.py the emmission wavelenght
+  - Handle // in names
+- Check mc_tools to comply with the naming conventions for creating the markers conventions
+- Check with the jupyter notebook the tiles grids and positions
+- Test mcmicro on the images

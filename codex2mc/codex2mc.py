@@ -33,13 +33,15 @@ def main():
     # Append metadata and calculate qc metrics
     cycle_info = tools.append_metadata(cycle_info,metadata)
     cycle_info = qc.append_qc(cycle_info)
-    '''
+    # cycle_info.to_csv( args.output / 'cycle_{c}_info_meta_extended_QC.csv'.format(c=f'{1:03d}'), index=False )
     # Select plane with highest contrast
-    cycle_info=pd.read_csv( "C:/Users/VictorP/Desktop/Postdoc projects/Tsomakidou_Tanevski_Schapiro/output/cycle_006_info_meta_extended_QC.csv" )
+
+    '''
+    cycle_info=pd.read_csv( "C:/Users/VictorP/Desktop/Postdoc projects/Tsomakidou_Tanevski_Schapiro/output/cycle_002_info_meta_extended_QC.csv" )
     cycle_info=cycle_info.loc[cycle_info.groupby(["channel", "tile"])["contrast_median"].idxmax()]
     #cycle_info.to_csv( args.output / 'cycle_{c}_info_meta_extended_QC.csv'.format(c=f'{6:03d}'), index=False )
     
-    
+
     
     output_dirs = tools.create_stack(
         cycle_info,
@@ -52,8 +54,8 @@ def main():
     
     # Save markers file in each output directory
     for path in output_dirs:
-        mc_tools.write_markers_file(path)
+        mc_tools.write_markers_file(path,args.remove_reference_marker,1)
     
-    
+
 if __name__ == "__main__":
     main()

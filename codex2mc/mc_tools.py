@@ -55,7 +55,7 @@ def get_patterns():
     return patterns
 
 
-def write_markers_file( data_path, rm_ref_marker,ref_marker='DAPI'):
+def write_markers_file( data_path, rm_ref_marker,ref_cycle=None,ref_marker='DAPI'):
     """
     This function writes the markers.csv file.
     Args:
@@ -80,16 +80,16 @@ def write_markers_file( data_path, rm_ref_marker,ref_marker='DAPI'):
 
         if background[0]=='B':
             remove = len(markers)*['TRUE']
-            markers = ['bg_{c}_{m}-{f}'.format( c= f'{cycle_no[0]:03d}' , m=x , f=y ) for x,y in zip(markers,filters) ]
+            markers = ['bg_{c}_{f}'.format(c=f'{cycle_no[0]:03d}',f=filt) for filt in filters]
             fmt_background = len(markers)*['']
         else:
             fmt_background = []
             remove = len(markers)*['']
             for x,y in zip(markers,filters):
-                if x == ref_marker:
+                if x in ref_marker:
                     fmt_background.append('')
                 else:
-                    fmt_background.append(f'bg_{cycle_no[0]:03d}_{x}-{y}')
+                    fmt_background.append(f'bg_{ref_cycle:03d}_{y}')
 
         mks_file['cycle_number'].extend(len(markers)*cycle_no)
         mks_file['marker_name'].extend(markers)

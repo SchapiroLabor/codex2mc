@@ -62,14 +62,16 @@ def estimate_tile_pos_mm(meta):
 def depure_json(json_details,json_general,cycle_no,region_no):
     meta={"cycle":None,
          "roi":None,
-         "general":{"wavelengths"  :None,
-                    "magnification":None,
-                    "aperture"     :None,
-                    "objectiveType":None,
-                    "tileWidth_px" :None,  
-                    "tileHeight_px":None,
+         "general":{"wavelengths"       :None,
+                    "magnification"     :None,
+                    "aperture"          :None,
+                    "objectiveType"     :None,
+                    "tileWidth_px"      :None,  
+                    "tileHeight_px"     :None,
                     "microscopeBitDepth":None,
-                    "resolution_nm":None
+                    "resolution_nm"     :None,
+                    "referenceCycle"    :None,
+                    "referenceChannel"  :None
                    }
         }
     with open(json_details) as f:
@@ -90,8 +92,8 @@ def depure_json(json_details,json_general,cycle_no,region_no):
 
 
         
-    meta["cycle"]   =indexify_cycles[cycle_no]
-    meta["roi"] =indexify_regions[region_no]
+    meta["cycle"] =indexify_cycles[cycle_no]
+    meta["roi"]   =indexify_regions[region_no]
 
     for key in meta["general"].keys():
         try:
@@ -100,5 +102,6 @@ def depure_json(json_details,json_general,cycle_no,region_no):
             meta["general"][key] =D[key]
 
     meta_=estimate_tile_pos_mm(meta)
+    #meta_["general"]["cycle_ref"]=indexify_cycles[meta_["general"]["referenceCycle"]]
             
     return meta_
