@@ -7,6 +7,25 @@ from pandas import DataFrame
 
 
 
+def extract_values(target_pattern,
+                   strings,
+                   number_cast=True):
+    """
+    This function extracts the values from a list of strings using a regular expression pattern.
+    Args:
+        target_pattern (str): regular expression pattern
+        strings (list): list of strings to extract the values from
+        number_cast (bool): if True, the extracted values are cast to integers
+    Returns:
+        list: list of extracted values
+    """
+    return [
+        (int(m.group(1)) if number_cast else m.group(1))
+        if (m := re.search(target_pattern, s))
+        else None
+        for s in strings
+    ]
+
 def flatten_list(lol):
     """
     This function flattens a list of lists.
@@ -30,7 +49,8 @@ def markers_file():
                'Filter':[],
                'background':[],
                'exposure':[],
-               'remove':[]
+               'remove':[],
+               'source':[]
                }
 
     return columns
@@ -86,7 +106,7 @@ def write_markers_file( data_path, rm_ref_marker,ref_cycle=None,ref_marker='DAPI
             fmt_background = []
             remove = len(markers)*['']
             for x,y in zip(markers,filters):
-                if x in ref_marker:
+                if ref_marker in x:
                     fmt_background.append('')
                 else:
                     fmt_background.append(f'bg_{ref_cycle:03d}_{y}')
@@ -97,14 +117,18 @@ def write_markers_file( data_path, rm_ref_marker,ref_cycle=None,ref_marker='DAPI
         mks_file['background'].extend(fmt_background)
         mks_file['exposure'].extend([ome.images[0].pixels.planes[ch].exposure_time for ch,_ in enumerate(markers)])
         mks_file['remove'].extend(remove)
+        mks_file['source'].extend(len(markers)*[background[0]])
 
     mks_file['channel_number'] = list(range(1, 1 + len(mks_file['marker_name'])))
     mks_file_df = DataFrame(mks_file)
     if rm_ref_marker:
-        earliest_cycle=mks_file_df['cycle_number'].min()
-        condition=( mks_file_df['marker_name']== ref_marker ) & ( mks_file_df['cycle_number']>earliest_cycle ) 
+        first_signal_cycle=mks_file_df.loc[mks_file_df["source"]=='S','cycle_number'].min()
+        condition=( mks_file_df['marker_name'].str.contains(ref_marker) ) & \
+                ( mks_file_df['cycle_number']>first_signal_cycle ) & \
+                ( mks_file_df['source']=='S') 
         mks_file_df.loc[ condition , ['remove'] ]='TRUE'
-    
+
+    mks_file_df.drop(columns=["source"],inplace=True)
     mks_file_df.to_csv( data_path.parent.absolute() / 'markers.csv' , index=False )
 
-    return mks_file
+    return mks_file_df
