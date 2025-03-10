@@ -30,7 +30,7 @@
   "tileOverlapY": 0.3,
   "tileOverlap": 0.3,
   "tilingMode": "snakerows",
-  "referenceCycle": 1,
+  "referenceCycle": 2,
   "referenceChannel": 1,
   "numSubTiles": 1,
   "deconvolutionIterations": 25,
