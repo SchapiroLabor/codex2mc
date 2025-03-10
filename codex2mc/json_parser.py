@@ -101,6 +101,6 @@ def depure_json(json_details,json_general,cycle_no,region_no):
             meta["general"][key] =D[key]
 
     meta_=estimate_tile_pos_mm(meta)
-    meta_["general"]["referenceCycle"]=G[key]-1 #substraction of 1 is needed since the experiments.json always starts at 2 for unknown reason
+    meta_["general"]["referenceCycle"]=G["referenceCycle"]-1 #substraction of 1 is needed since the experiments.json always starts at 2 for unknown reason
             
     return meta_

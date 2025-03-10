@@ -38,7 +38,7 @@ def main():
     
     #cycle_info=pd.read_csv( "C:/Users/VictorP/Desktop/Postdoc projects/Tsomakidou_Tanevski_Schapiro/output/cycle_002_info_meta_extended_QC.csv" )
     cycle_info=cycle_info.loc[cycle_info.groupby(["channel", "tile"])["contrast_median"].idxmax()]
-    cycle_info.to_csv( args.output / 'cycle_{c}_info_meta_extended_QC.csv'.format(c=f'{cycle_number:03d}'), index=False )
+    #cycle_info.to_csv( args.output / 'cycle_{c}_info_meta_extended_QC.csv'.format(c=f'{cycle_number:03d}'), index=False )
 
     
 
