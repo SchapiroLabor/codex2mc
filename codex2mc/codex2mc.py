@@ -57,7 +57,10 @@ def main():
     for path in output_dirs:
         mc_tools.write_markers_file(path,args.remove_reference_marker,ref_cycle)
     
-
+    if args.write_table:
+        qc_output_dir=output / "cycle_info"
+        qc_output_dir.mkdir(parents=True, exist_ok=True)
+        cycle_info.to_csv( qc_output_dir / 'cycle_{c}.csv'.format( c=f'{ cycle_number:03d}' ), index=False )
     
 if __name__ == "__main__":
     main()
