@@ -1,14 +1,18 @@
-from templates import info_dic
+# Import built-in libraries
 import re
+from pathlib import Path
+from itertools import repeat
+
+# Import external libraries
+import ome_writer
+import numpy as np
 import pandas as pd
 import tifffile as tifff
 from bs4 import BeautifulSoup
-import numpy as np
-from pathlib import Path
-import ome_writer
-from itertools import repeat
-import illumination_corr
 
+# Import internal libraries
+import codex2mc.illumination_corr
+from codex2mc.templates import info_dic
 
 def merge_dicts(list_of_dicts):
     """

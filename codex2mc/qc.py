@@ -1,10 +1,14 @@
-import pandas as pd
-from skimage.measure import blur_effect
-from tifffile import imread
-from tools import merge_dicts
-import numpy as np
+# import built-in libraries
 from multiprocessing import Pool
 
+# import external libraries
+import numpy as np
+import pandas as pd
+from tifffile import imread
+from skimage.measure import blur_effect
+
+# import internal libraries
+from codex2mc.tools import merge_dicts
 
 
 def contrast(img):

@@ -1,10 +1,14 @@
-from pathlib import Path
-from tools import extract_values
+# Import built-in libraries
 import re
+from pathlib import Path
+
+# Import external libraries
 import numpy as np
-from ome_types import from_tiff
 from pandas import DataFrame
 
+# Import internal libraries
+from codex2mc.tools import extract_values
+from codex2mc.ome_types import from_tiff
 
 
 def extract_values(target_pattern,

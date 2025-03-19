@@ -1,5 +1,7 @@
-from basicpy import BaSiC
+# Import external libraries
 import numpy as np
+from basicpy import BaSiC
+
 
 def indices_per_channel(total_imgs, no_of_channels):
     """

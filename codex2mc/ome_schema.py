@@ -1,9 +1,11 @@
 #!/usr/bin/python
-import ome_types
-from uuid import uuid4
-from ome_types.model import OME,Image,Pixels,TiffData,Channel,Plane
+# Import built-in libraries
 import platform
 
+# Import external libraries
+from uuid import uuid4
+import ome_types
+from ome_types.model import OME,Image,Pixels,TiffData,Channel,Plane
 
 
 def INPUTS(frame, conformed_markers):

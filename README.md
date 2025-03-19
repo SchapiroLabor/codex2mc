@@ -1,4 +1,9 @@
 # Staging module for Akoya - CODEX to MCMICRO
+[![PyPI](https://img.shields.io/pypi/v/codex2mc?style=flat-square)](https://pypi.org/project/codex2mc/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/codex2mc?style=flat-square)](https://pypi.org/project/codex2mc/)
+[![PyPI - License](https://img.shields.io/pypi/l/codex2mc?style=flat-square)](https://pypi.org/project/codex2mc/)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/codex2mc?style=flat-square)](https://pypi.org/project/codex2mc/)
+[![main](https://github.com/saezlab/liana-py/actions/workflows/main.yml/badge.svg)](https://github.com/schapirolabor/codex2mc/actions)
 
 The codex2mc.py script stages CODEX data sets for being registered with ASHLAR in MCMICRO.
 
