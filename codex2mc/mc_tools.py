@@ -11,7 +11,6 @@ from ome_types import from_tiff
 from codex2mc.tools import extract_values
 
 
-
 def extract_values(target_pattern,
                    strings,
                    number_cast=True):
