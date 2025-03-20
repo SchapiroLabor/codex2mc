@@ -4,14 +4,14 @@ from pathlib import Path
 from itertools import repeat
 
 # Import external libraries
-import ome_writer
 import numpy as np
 import pandas as pd
 import tifffile as tifff
 from bs4 import BeautifulSoup
 
 # Import internal libraries
-import codex2mc.illumination_corr
+import codex2mc.illumination_corr as illumination_corr
+import codex2mc.ome_writer as ome_writer
 from codex2mc.templates import info_dic
 
 def merge_dicts(list_of_dicts):

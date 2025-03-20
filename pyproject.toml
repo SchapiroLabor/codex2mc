@@ -40,7 +40,7 @@ packages = ["codex2mc"]
 include-package-data = true
 
 [project.scripts]
-macsima2mc = "codex2mc.codex2mc:main"
+codex2mc = "codex2mc.codex2mc:main"
 
 [project.urls]
 Homepage = "https://github.com/SchapiroLabor/codex2mc"

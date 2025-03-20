@@ -5,10 +5,11 @@ from pathlib import Path
 # Import external libraries
 import numpy as np
 from pandas import DataFrame
+from ome_types import from_tiff
 
 # Import internal libraries
 from codex2mc.tools import extract_values
-from codex2mc.ome_types import from_tiff
+
 
 
 def extract_values(target_pattern,
