@@ -315,7 +315,7 @@ def create_stack(cycle_info_df,
         if extended_outputs:
             out['index'].append(index)
             out['array'].append(stack)
-            out['full_path'].append(stack_full_path)
+            out['full_path'].append(stack_file_path)
             out['ome'].append(ome)
         else:
             out['output_paths'].append(stack_output_dir)
