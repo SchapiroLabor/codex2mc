@@ -11,7 +11,7 @@ on:
    #release:
       #tags: ['*.*.*']
    release: 
-      types: published
+      types: [published]
     #pull_request:
     #    branches: ["main"]
     
