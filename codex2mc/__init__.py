@@ -1,4 +1,4 @@
-from codex2mc import version
+__version__ = "0.0.3"
 from codex2mc import CLI
 from codex2mc import illumination_corr
 from codex2mc import json_parser
