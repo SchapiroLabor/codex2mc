@@ -9,8 +9,14 @@
 name: Upload Python Package
 
 on:
-  release:
-    types: [published]
+   #push:
+   #   branches: [ "main" ]
+   #release:
+      #tags: ['*.*.*']
+   release: 
+      types: ['*.*.*']
+    #pull_request:
+    #    branches: ["main"]
 
 permissions:
   contents: read
