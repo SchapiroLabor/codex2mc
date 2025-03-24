@@ -8,10 +8,10 @@ name: Docker
 on:
    #push:
    #   branches: [ "main" ]
-   release:
-      tags: ['*.*.*']
-   #release: 
-    #    types: published
+   #release:
+      #tags: ['*.*.*']
+   release: 
+      types: published
     #pull_request:
     #    branches: ["main"]
     
