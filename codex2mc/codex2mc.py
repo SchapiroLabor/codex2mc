@@ -4,12 +4,12 @@
 import pandas as pd
 
 # Import internal libraries
-import codex2mc.tools as tools
-import codex2mc.CLI as CLI
-import codex2mc.mc_tools as mc_tools
-import codex2mc.json_parser as json_parser
-import codex2mc.qc as qc
-from codex2mc.templates import codex_pattern
+import tools
+import CLI
+import mc_tools
+import json_parser
+import qc
+from templates import codex_pattern
 
 # input_test_folder=Path("D:/codex_data_samples/codex_data_v2/8_Cycle2")
 # output_test_folder=Path('D:/test_folder')

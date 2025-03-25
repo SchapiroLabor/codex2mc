@@ -8,7 +8,7 @@ from tifffile import imread
 from skimage.measure import blur_effect
 
 # import internal libraries
-from codex2mc.tools import merge_dicts
+from tools import merge_dicts
 
 
 def contrast(img):

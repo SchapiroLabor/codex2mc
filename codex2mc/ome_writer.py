@@ -2,7 +2,7 @@
 import pandas as pd
 
 # Import internal libraries
-import codex2mc.ome_schema as schema
+import ome_schema as schema
 
 
 def create_ome(tile_info,

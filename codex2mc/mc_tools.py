@@ -8,7 +8,7 @@ from pandas import DataFrame
 from ome_types import from_tiff
 
 # Import internal libraries
-from codex2mc.tools import extract_values
+from tools import extract_values
 
 
 def extract_values(target_pattern,
