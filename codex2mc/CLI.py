@@ -90,13 +90,6 @@ def get_args():
                     help='writes a table in --output/cycle_info. Content of table is acquisition parameters, metadata and, if enabled, qc metrics of each tile'
                     )
 
-    parser.add_argument('-v',
-                        '--version',
-                        dest='version',
-                        action='version',
-                        version=f"%(prog)s {__version__}"
-                        )
-
     args=parser.parse_args()
 
     return args
