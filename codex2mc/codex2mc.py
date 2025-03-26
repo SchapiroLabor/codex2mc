@@ -35,7 +35,6 @@ def main():
 
     # Parse and curate metadata
     metadata = json_parser.depure_json(json_details,json_general,cycle_number,region_number)
-
     # Append metadata and calculate qc metrics
     cycle_info = tools.append_metadata(cycle_info,metadata)
     cycle_info = qc.append_qc(cycle_info)
