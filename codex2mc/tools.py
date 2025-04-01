@@ -259,7 +259,9 @@ def create_stack(cycle_info_df,
                  ill_corr=False,
                  out_folder='raw',
                  extended_outputs=False,
-                 dimensions=["roi","source"]):
+                 dimensions=["roi","source"],
+                 skip_stacking=False
+                 ):
     """
     This function creates the stack of images from the cycle_info dataframe.
     Args:
@@ -286,6 +288,9 @@ def create_stack(cycle_info_df,
     for index in acq_index:
         stack_output_dir = output_dir / cast_outdir_name(index) / out_folder
         stack_output_dir.mkdir(parents=True, exist_ok=True)
+        out['output_paths'].append(stack_output_dir)
+        if skip_stacking:
+            continue
         group = acq_group.get_group(index)
         #extract list of unique pairs (marker,filter)
         marker_filter_map=group[['marker','filter']].value_counts().index.values
@@ -317,7 +322,6 @@ def create_stack(cycle_info_df,
             out['full_path'].append(stack_file_path)
             out['ome'].append(ome)
         else:
-            out['output_paths'].append(stack_output_dir)
             tifff.imwrite( stack_file_path , stack, photometric='minisblack' )
             ome,ome_xml = ome_writer.create_ome(group, conformed_markers)
             tifff.tiffcomment(stack_file_path, ome_xml)

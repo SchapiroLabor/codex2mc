@@ -10,6 +10,8 @@ import mc_tools
 import json_parser
 import qc
 from templates import codex_pattern
+import best_plane
+
 
 # input_test_folder=Path("D:/codex_data_samples/codex_data_v2/8_Cycle2")
 # output_test_folder=Path('D:/test_folder')
@@ -40,28 +42,29 @@ def main():
     cycle_info = qc.append_qc(cycle_info)
 
     # Select plane with highest contrast
-    #cycle_info=pd.read_csv( "C:/Users/VictorP/Desktop/Postdoc projects/Tsomakidou_Tanevski_Schapiro/output/cycle_002_info_meta_extended_QC.csv" )
-    cycle_info=cycle_info.loc[cycle_info.groupby(["channel", "tile"])["contrast_median"].idxmax()]
-    #cycle_info.to_csv( args.output / 'cycle_{c}_info_meta_extended_QC.csv'.format(c=f'{cycle_number:03d}'), index=False )
+
+
+    cycle_info_in_focus=best_plane.extract(cycle_info)
     
     output_dirs = tools.create_stack(
-        cycle_info,
-        output,
-        ref_marker=ref,
-        hi_exp=args.hi_exposure_only,
-        ill_corr=basicpy_corr,
-        out_folder=out_folder_name,
-    )
+            cycle_info_in_focus,
+            output,
+            ref_marker=ref,
+            hi_exp=args.hi_exposure_only,
+            ill_corr=basicpy_corr,
+            out_folder=out_folder_name,
+            skip_stacking=args.only_qc_file
+            )
     
-    # Save markers file in each output directory
+        # Save markers file in each output directory
     ref_cycle=metadata["general"]["referenceCycle"]
     for path in output_dirs:
         mc_tools.write_markers_file(path,args.remove_reference_marker,ref_cycle)
     
-    if args.write_table:
-        qc_output_dir=output / "cycle_info"
-        qc_output_dir.mkdir(parents=True, exist_ok=True)
-        cycle_info.to_csv( qc_output_dir / 'cycle_{c}.csv'.format( c=f'{ cycle_number:03d}' ), index=False )
+        if (args.write_table or args.only_qc_file):
+            qc_output_dir=path.parent / "cycle_info"
+            qc_output_dir.mkdir(parents=True, exist_ok=True)
+            cycle_info.to_csv( qc_output_dir / 'cycle_{c}.csv'.format( c=f'{ cycle_number:03d}' ), index=False )
     
 if __name__ == "__main__":
     main()
