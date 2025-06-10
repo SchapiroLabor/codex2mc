@@ -2,7 +2,7 @@
 import re
 from pathlib import Path
 from itertools import repeat
-
+import shutil
 # Import external libraries
 import numpy as np
 import pandas as pd
@@ -12,6 +12,7 @@ import tifffile as tifff
 import illumination_corr
 import ome_writer
 from templates import info_dic
+
 
 def merge_dicts(list_of_dicts):
     """
@@ -281,7 +282,6 @@ def create_stack(cycle_info_df,
     else:
         out = {'output_paths':[]}
     
-
     acq_group = cycle_info_df.groupby(dimensions)
     acq_index = list( acq_group.indices.keys() )
 
@@ -330,3 +330,39 @@ def create_stack(cycle_info_df,
         return out
     else:
         return np.unique( out['output_paths'] )
+
+
+def save_as_tiles(cycle_info_df,
+                output_dir,
+                ref_marker='DAPI',
+                ill_corr=False,
+                out_folder='tiles',
+                dimensions=["roi","cycle","channel","source"],
+                ):
+        
+    acq_group = cycle_info_df.groupby(dimensions)
+    acq_index = list( acq_group.indices.keys())
+
+    for index in acq_index:
+        
+        roi="roi-{no}".format(no=f'{index[0]:03d}')
+        cycle="cycle_{no}".format(no=f'{index[1]:03d}')
+        ch="ch-{no}".format(no=f'{index[2]:03d}')
+
+        tiles_output_dir = output_dir / roi / out_folder / cycle 
+        tiles_output_dir.mkdir(parents=True, exist_ok=True)
+
+        for tile,marker,filter,img_source in acq_group.get_group(index)[ ["tile","marker","filter","full_path"] ].values:
+            out_aux= tiles_output_dir / "{ch_tag}_{markfilter}".format(ch_tag=ch,markfilter="_".join([marker,filter]))
+            out_aux.mkdir(parents=True, exist_ok=True)
+            shutil.copy( img_source, out_aux / "tile_{tile_tag}.tif".format(tile_tag=f"{tile:03d}") )
+            
+
+
+
+
+
+            
+        
+
+

@@ -89,6 +89,12 @@ def get_args():
                     action='store_true',
                     help='writes a table in --output/cycle_info. Content of table is acquisition parameters, metadata and, if enabled, qc metrics of each tile'
                     )
+    
+    parser.add_argument('-til',
+                '--save_as_tiles',
+                action='store_true',
+                help='writes each single tile per channel in an individual file'
+                )
 
     args=parser.parse_args()
 
