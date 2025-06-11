@@ -29,8 +29,7 @@ def main():
     out_folder_name = args.output_subdir
     json_details=args.json_file_details
     json_general=args.json_file_general
-    as_single_files=args.save_as_tiles
-
+    
     # Get cycle info
     cycle_info   = tools.cycle_info(input, codex_pattern(version=1))
     cycle_number = int(cycle_info['cycle'].unique()[0])
@@ -47,28 +46,27 @@ def main():
 
     cycle_info_in_focus=best_plane.extract(cycle_info)
 
-    if as_single_files:
-        tools.save_as_tiles(cycle_info_in_focus,output)
-    else:
-        output_dirs = tools.create_stack(
+
+    output_dirs = tools.create_stack(
             cycle_info_in_focus,
             output,
             ref_marker=ref,
             hi_exp=args.hi_exposure_only,
             ill_corr=basicpy_corr,
             out_folder=out_folder_name,
-            skip_stacking=args.only_qc_file
+            skip_stacking=args.only_qc_file,
+            save_as_tiles=args.save_as_tiles
             )
     
         # Save markers file in each output directory
-        ref_cycle=metadata["general"]["referenceCycle"]
-        for path in output_dirs:
-            mc_tools.write_markers_file(path,args.remove_reference_marker,ref_cycle)
+    ref_cycle=metadata["general"]["referenceCycle"]
+    for path in output_dirs:
+        mc_tools.write_markers_file(path,args.remove_reference_marker,ref_cycle)
     
-            if (args.write_table or args.only_qc_file):
-                qc_output_dir=path.parent / "cycle_info"
-                qc_output_dir.mkdir(parents=True, exist_ok=True)
-                cycle_info.to_csv( qc_output_dir / 'cycle_{c}.csv'.format( c=f'{ cycle_number:03d}' ), index=False )
+        if (args.write_table or args.only_qc_file):
+            qc_output_dir=path.parent / "cycle_info"
+            qc_output_dir.mkdir(parents=True, exist_ok=True)
+            cycle_info.to_csv( qc_output_dir / 'cycle_{c}.csv'.format( c=f'{ cycle_number:03d}' ), index=False )
     
 if __name__ == "__main__":
     main()

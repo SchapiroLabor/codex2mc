@@ -261,7 +261,8 @@ def create_stack(cycle_info_df,
                  out_folder='raw',
                  extended_outputs=False,
                  dimensions=["roi","source"],
-                 skip_stacking=False
+                 skip_stacking=False,
+                 save_as_tiles=False
                  ):
     """
     This function creates the stack of images from the cycle_info dataframe.
@@ -286,7 +287,10 @@ def create_stack(cycle_info_df,
     acq_index = list( acq_group.indices.keys() )
 
     for index in acq_index:
-        stack_output_dir = output_dir / cast_outdir_name(index) / out_folder
+        roi_id=cast_outdir_name(index)
+        if save_as_tiles:
+            out_folder="tiles"
+        stack_output_dir = output_dir / roi_id / out_folder
         stack_output_dir.mkdir(parents=True, exist_ok=True)
         out['output_paths'].append(stack_output_dir)
         if skip_stacking:
@@ -322,9 +326,12 @@ def create_stack(cycle_info_df,
             out['full_path'].append(stack_file_path)
             out['ome'].append(ome)
         else:
-            tifff.imwrite( stack_file_path , stack, photometric='minisblack' )
-            ome,ome_xml = ome_writer.create_ome(group, conformed_markers)
-            tifff.tiffcomment(stack_file_path, ome_xml)
+            if save_as_tiles:
+                write_tiles(stack_output_dir,stack,stack_name)
+            else:
+                tifff.imwrite( stack_file_path , stack, photometric='minisblack' )
+                ome,ome_xml = ome_writer.create_ome(group, conformed_markers)
+                tifff.tiffcomment(stack_file_path, ome_xml)
         
     if extended_outputs:
         return out
@@ -356,6 +363,41 @@ def save_as_tiles(cycle_info_df,
             out_aux= tiles_output_dir / "{ch_tag}_{markfilter}".format(ch_tag=ch,markfilter="_".join([marker,filter]))
             out_aux.mkdir(parents=True, exist_ok=True)
             shutil.copy( img_source, out_aux / "tile_{tile_tag}.tif".format(tile_tag=f"{tile:03d}") )
+
+def write_tiles(output_dir,img_stack,stack_name):
+    
+    cycle_no=re.search(r"cycle-(.*?)-", stack_name).group(1)
+    markers=re.search(r"markers-(.*?)-filters",stack_name).group(1).split("__")
+    filters=re.search(r"-filters-(.*?).ome",stack_name).group(1).split("__")
+    marker_filter=['_'.join(element) for element in zip(markers,filters)]
+
+    total_ch=len(markers)
+
+    with tifff.TiffFile(img_stack) as tif:
+        total_imgs=len(tif.pages)
+        ref=tif.pages[0]
+        bit_depth=ref.dtype
+        y_size,x_size=ref.shape
+
+    mode=total_imgs%total_ch
+    if mode>0:
+        print("mismatch between total number of tiles and total number of images")
+    else:
+        no_of_tiles=total_imgs//total_ch
+        tiles_output_dir = output_dir/ f"cycle_{cycle_no}"
+        tiles_output_dir.mkdir(parents=True, exist_ok=True)
+
+    for ch_index,tag in zip(range(0,total_ch),marker_filter):
+        channel_folder_path=tiles_output_dir / "ch-{label}_{markfilter}".format(label=f"{(1+ch_index):03d}",markfilter=tag) 
+        channel_folder_path.mkdir(parents=True, exist_ok=True)
+
+        #aux_stack= tifff.imread( img_stack, key=range(ch_index, total_imgs, total_ch) )
+        indices=list(range(ch_index, total_imgs, total_ch))
+        aux_stack=img_stack[indices,:,:]
+
+        tiles={t+1:aux_stack[t,:,:] for t in range(0,aux_stack.shape[0])  }
+        for tile,img in tiles.items():
+            tifff.imwrite ( channel_folder_path / "tile_{n}.tif".format(n=f'{tile:03d}'), img, photometric='minisblack'  )
             
 
 
