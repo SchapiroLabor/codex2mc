@@ -372,13 +372,15 @@ def write_tiles(output_dir,img_stack,stack_name):
     marker_filter=['_'.join(element) for element in zip(markers,filters)]
 
     total_ch=len(markers)
-
+    """
     with tifff.TiffFile(img_stack) as tif:
         total_imgs=len(tif.pages)
         ref=tif.pages[0]
         bit_depth=ref.dtype
         y_size,x_size=ref.shape
-
+    """
+    total_imgs=img_stack.shape[0]
+    
     mode=total_imgs%total_ch
     if mode>0:
         print("mismatch between total number of tiles and total number of images")
